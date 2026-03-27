@@ -92,19 +92,34 @@ end tell`);
       const raw = await runAppleScript(`
 tell application "Contacts"
   set output to ""
-  set nameMatches to every person whose name contains "${esc}"
-  set emailMatches to every person whose emails contains "${esc}"
-  set phoneMatches to every person whose phones contains "${esc}"
   set seen to {}
-  repeat with grp in {nameMatches, emailMatches, phoneMatches}
-    repeat with p in grp
-      set pid to id of p
-      if pid is not in seen then
+  repeat with p in every person
+    set pid to id of p
+    if pid is not in seen then
+      set matched to false
+      if name of p contains "${esc}" then set matched to true
+      if not matched then
+        repeat with ph in phones of p
+          if value of ph contains "${esc}" then
+            set matched to true
+            exit repeat
+          end if
+        end repeat
+      end if
+      if not matched then
+        repeat with em in emails of p
+          if value of em contains "${esc}" then
+            set matched to true
+            exit repeat
+          end if
+        end repeat
+      end if
+      if matched then
         set end of seen to pid
         ${CONTACT_FIELDS}
         set output to output & pid & "\\t" & (name of p) & "\\t" & fn & "\\t" & ln & "\\t" & org & "\\t" & phoneList & "\\t" & emailList & (ASCII character 30)
       end if
-    end repeat
+    end if
   end repeat
   return output
 end tell`);
