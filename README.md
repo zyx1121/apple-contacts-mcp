@@ -1,16 +1,16 @@
-# @zyx1121/apple-mail-mcp
+# @zyx1121/apple-contacts-mcp
 
-MCP server for Apple Mail — read, search, and manage emails via Claude Code.
+MCP server for Apple Contacts — create, search, update, and manage contacts via Claude Code.
 
 ## Install
 
 ```bash
-claude mcp add apple-mail -- npx @zyx1121/apple-mail-mcp
+claude mcp add apple-contacts -- npx @zyx1121/apple-contacts-mcp
 ```
 
 ## Prerequisites
 
-- macOS with Apple Mail configured
+- macOS with Contacts.app configured
 - Node.js >= 18
 - First run will prompt for Automation permission (System Settings > Privacy & Security > Automation)
 
@@ -18,29 +18,37 @@ claude mcp add apple-mail -- npx @zyx1121/apple-mail-mcp
 
 | Tool | Description |
 |------|-------------|
-| `mail_get_accounts` | List all accounts and their mailboxes |
-| `mail_count_unread` | Count unread messages per account/mailbox |
-| `mail_list_messages` | List messages with filters (account, mailbox, date range, unread) |
-| `mail_read_message` | Read full content of a message by ID |
-| `mail_search` | Search by subject, sender, or both |
-| `mail_mark_read` | Mark a message as read |
+| `contacts_list` | List all contacts |
+| `contacts_search` | Search contacts by name, phone, or email |
+| `contacts_get` | Get full details of a contact by ID |
+| `contacts_create` | Create a new contact |
+| `contacts_update` | Update a contact (name, company, phones, emails, addresses) |
+| `contacts_delete` | Delete a contact |
+
+### Update fields
+
+`contacts_update` supports the following array fields — when provided, all existing entries of that type are replaced:
+
+- **phones**: `[{ "label": "mobile", "value": "0912345678" }]`
+- **emails**: `[{ "label": "work", "value": "user@example.com" }]`
+- **addresses**: `[{ "label": "home", "street": "...", "city": "...", "state": "...", "zip": "...", "country": "..." }]`
 
 ## Examples
 
 ```
-"List my mail accounts"         → mail_get_accounts
-"Show unread count"             → mail_count_unread
-"Yesterday's emails"            → mail_list_messages { date_from: "2026-03-26" }
-"Search for GitHub emails"      → mail_search { query: "GitHub" }
-"Read message 12345"            → mail_read_message { message_id: 12345 }
+"List all contacts"              → contacts_list
+"Find John"                      → contacts_search { query: "John" }
+"Get contact details"            → contacts_get { id: "ABC-123" }
+"Create a contact"               → contacts_create { first_name: "John", last_name: "Doe" }
+"Update phone number"            → contacts_update { id: "ABC-123", phones: [{ "label": "mobile", "value": "0912345678" }] }
+"Delete contact"                 → contacts_delete { id: "ABC-123" }
 ```
 
 ## Limitations
 
 - macOS only (uses AppleScript via `osascript`)
-- Subject search is case-sensitive (AppleScript limitation)
-- Sender/body search fetches recent messages and filters in JS (last 30 days, max 500)
-- Mail.app must be running
+- Contacts.app must be running
+- Contact IDs may change after iCloud sync
 
 ## License
 
