@@ -230,20 +230,62 @@ end tell`);
   server.registerTool(
     "contacts_update",
     {
-      description: "Update an existing contact",
+      description: "Update an existing contact. For phones, emails, and addresses: when provided, ALL existing entries are replaced with the new ones.",
       inputSchema: z.object({
         id: z.string().describe("Contact ID"),
         first_name: z.string().optional().describe("New first name"),
         last_name: z.string().optional().describe("New last name"),
         organization: z.string().optional().describe("New organization"),
+        phones: z.array(z.object({
+          label: z.string().describe("Phone label (mobile, home, work, etc.)"),
+          value: z.string().describe("Phone number"),
+        })).optional().describe("Replace all phone numbers"),
+        emails: z.array(z.object({
+          label: z.string().describe("Email label (work, home, etc.)"),
+          value: z.string().describe("Email address"),
+        })).optional().describe("Replace all email addresses"),
+        addresses: z.array(z.object({
+          label: z.string().describe("Address label (home, work, etc.)"),
+          street: z.string().optional().default("").describe("Street address"),
+          city: z.string().optional().default("").describe("City"),
+          state: z.string().optional().default("").describe("State/province"),
+          zip: z.string().optional().default("").describe("ZIP/postal code"),
+          country: z.string().optional().default("").describe("Country"),
+        })).optional().describe("Replace all addresses"),
       }),
     },
-    withErrorHandling(async ({ id, first_name, last_name, organization }) => {
+    withErrorHandling(async ({ id, first_name, last_name, organization, phones, emails, addresses }) => {
       const esc = escapeForAppleScript(id);
       const updates: string[] = [];
       if (first_name !== undefined) updates.push(`set first name of p to "${escapeForAppleScript(first_name)}"`);
       if (last_name !== undefined) updates.push(`set last name of p to "${escapeForAppleScript(last_name)}"`);
       if (organization !== undefined) updates.push(`set organization of p to "${escapeForAppleScript(organization)}"`);
+      if (phones !== undefined) {
+        updates.push(`repeat while (count of phones of p) > 0\n    delete first phone of p\n  end repeat`);
+        for (const ph of phones) {
+          updates.push(`make new phone at end of phones of p with properties {label:"${escapeForAppleScript(ph.label)}", value:"${escapeForAppleScript(ph.value)}"}`);
+        }
+      }
+      if (emails !== undefined) {
+        updates.push(`repeat while (count of emails of p) > 0\n    delete first email of p\n  end repeat`);
+        for (const em of emails) {
+          updates.push(`make new email at end of emails of p with properties {label:"${escapeForAppleScript(em.label)}", value:"${escapeForAppleScript(em.value)}"}`);
+        }
+      }
+      if (addresses !== undefined) {
+        updates.push(`repeat while (count of addresses of p) > 0\n    delete first address of p\n  end repeat`);
+        for (const addr of addresses) {
+          const props = [
+            `label:"${escapeForAppleScript(addr.label)}"`,
+            `street:"${escapeForAppleScript(addr.street)}"`,
+            `city:"${escapeForAppleScript(addr.city)}"`,
+            `state:"${escapeForAppleScript(addr.state)}"`,
+            `zip:"${escapeForAppleScript(addr.zip)}"`,
+            `country:"${escapeForAppleScript(addr.country)}"`,
+          ];
+          updates.push(`make new address at end of addresses of p with properties {${props.join(", ")}}`);
+        }
+      }
       if (!updates.length) return error("No fields to update");
       await runAppleScript(`
 tell application "Contacts"
